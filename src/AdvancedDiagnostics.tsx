@@ -13,7 +13,7 @@ const labels: Record<HeatMetric, string> = {
   bias: '평균 잔차',
   within: '허용 오차 충족률',
 }
-const curveColors = ['#17685b', '#8471a7', '#b47835', '#c36150']
+const curveColors = ['var(--chart-a)', 'var(--chart-b)', '#b77916', 'var(--chart-negative)']
 const curveDashes = ['', '7 3', '2 3', '10 3 2 3']
 
 export function ComparisonView({
@@ -46,8 +46,8 @@ export function ComparisonView({
     heatMetric === 'bias'
       ? scaleLinear<string>()
           .domain([-maximum, 0, maximum])
-          .range(['#9e91ba', '#f3f1ea', '#d88c74'])
-      : scaleLinear<string>().domain([0, maximum]).range(['#eff3ed', '#81b7a0'])
+          .range(['#86b6fb', '#f3f6fa', '#ffafb7'])
+      : scaleLinear<string>().domain([0, maximum]).range(['#eef5ff', '#91beff'])
   const pairs = useMemo(() => pairModels(a, b), [a, b])
   const summary = improvementSummary(pairs)
   const ranked = [...pairs].sort((x, y) => x.delta - y.delta)
@@ -61,7 +61,7 @@ export function ComparisonView({
     <>
       <div className="section-intro">
         <div>
-          <span className="eyebrow">LOOK INSIDE THE AVERAGE</span>
+          <span className="eyebrow">조건별로 자세히 보기</span>
           <h2>어떤 조건에서, 어떤 샘플이 달라졌을까요?</h2>
           <p>히트맵의 셀을 선택하면 같은 표본으로 모델 A와 B를 비교합니다.</p>
         </div>
@@ -111,7 +111,7 @@ export function ComparisonView({
                         key={cell.band}
                         className={`heat-cell ${active ? 'selected' : ''} ${dim ? 'dimmed' : ''}`}
                         style={{
-                          backgroundColor: cell.count ? color(cell[heatMetric]) : '#f3f1ea',
+                          backgroundColor: cell.count ? color(cell[heatMetric]) : '#f2f4f6',
                         }}
                         disabled={!cell.count}
                         aria-pressed={active}
@@ -148,8 +148,8 @@ export function ComparisonView({
             style={{
               background:
                 heatMetric === 'bias'
-                  ? 'linear-gradient(90deg,#9e91ba,#f3f1ea,#d88c74)'
-                  : 'linear-gradient(90deg,#eff3ed,#81b7a0)',
+                  ? 'linear-gradient(90deg,#86b6fb,#f3f6fa,#ffafb7)'
+                  : 'linear-gradient(90deg,#eef5ff,#91beff)',
             }}
           />
           <span>
@@ -216,7 +216,7 @@ export function ComparisonView({
           </Frame>
         </ChartCard>
         <section className="improvement-panel" aria-label="모델 개선 요약">
-          <span className="eyebrow">THE TRADE-OFF</span>
+          <span className="eyebrow">모델의 변화를 읽는 방법</span>
           <h2>
             평균이 좋아져도
             <br />

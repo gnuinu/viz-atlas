@@ -28,6 +28,12 @@
 
 히트맵은 선택 후에도 전체 조건 지도를 유지하고 A/B 공통 색 범위를 사용합니다. 보정 곡선 역시 설비 전체를 비교하며, 실제값 구간 필터만 평가 표본을 좁힙니다. 표본이 15개 미만인 셀의 † 표시는 데모용 주의 표시이며 통계적 유의성 기준이 아닙니다. 실제값 구간은 관측 이후의 진단에 사용하며 운영 시 모델 선택 규칙으로 바로 사용할 수 없습니다.
 
+## 디자인
+
+토스의 [컬러 시스템 설계](https://toss.tech/article/43385)와 [타이포그래피](https://tossmini-docs.toss.im/tds-mobile/foundation/typography/)를 참고한 독립 테마입니다. 파란색 강조, 밝은 회색 배경, 넓은 여백과 둥근 카드로 시각적 위계를 구성했습니다. 글꼴은 공개 라이선스의 [Pretendard](https://github.com/orioncactus/pretendard)를 사용하며, 로고는 Viz Atlas 자체 SVG입니다.
+
+`src/styles.css`의 의미별 CSS 변수로 버튼·선택 상태·차트 색상을 관리합니다. 정확도 산점도는 파랑으로 허용 범위 이내, 빨강으로 범위 초과를 나타냅니다. 모델과 설비를 구분하는 차트에는 범례·선 모양·수치를 함께 제공합니다.
+
 ## 로컬 실행
 
 Node.js 24 LTS 권장 (최소 22.12).
@@ -54,7 +60,7 @@ Chrome이 설치된 로컬 환경에서는 `PW_CHROME=1 npm run test:e2e`로 설
 
 React 19 · TypeScript · Vite 8 · D3 scales/shapes · Lucide · Vitest · Playwright.
 
-백엔드 없이 브라우저에서 데이터를 생성하고 평가합니다. 웹 폰트는 Google Fonts에서 불러오며 실패하면 시스템 폰트를 사용합니다. CSV 업로드나 외부 데이터 저장 기능은 없습니다.
+백엔드 없이 브라우저에서 데이터를 생성하고 평가합니다. Pretendard Variable 웹 폰트를 jsDelivr에서 불러오며 실패하면 시스템 폰트를 사용합니다. CSV 업로드나 외부 데이터 저장 기능은 없습니다.
 
 ```text
 src/

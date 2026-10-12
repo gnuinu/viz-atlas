@@ -205,12 +205,11 @@ export default function App() {
         <a href="#lab" className="brand" aria-label="Viz Atlas 홈">
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} width="35" height="35" alt="" />
           <span>
-            viz<span className="brand-light">atlas</span>
-            <span className="brand-period">.</span>
+            Viz<span className="brand-light"> Atlas</span>
           </span>
         </a>
-        <div className="sidebar-caption">A FIELD GUIDE TO DATA</div>
-        <div className="sidebar-section-label">WORKSPACE</div>
+        <div className="sidebar-caption">데이터를 이해하는 새로운 방법</div>
+        <div className="sidebar-section-label">워크스페이스</div>
         <nav aria-label="메인 메뉴">
           <a
             href="#lab"
@@ -238,7 +237,7 @@ export default function App() {
             읽는 법 & 노트
           </a>
         </nav>
-        <div className="sidebar-section-label collection-label">THIS COLLECTION</div>
+        <div className="sidebar-section-label collection-label">지금 보고 있는 컬렉션</div>
         <div className="collection-link">
           <span className="collection-line" />
           <span>
@@ -250,10 +249,11 @@ export default function App() {
             <span className="mini-spark">
               <Sparkles size={16} />
             </span>
-            <strong>숫자 너머의 패턴.</strong>
+            <strong>처음이라면, 여기부터</strong>
             <p>
-              직접 바꿔보고, 발견하고,
-              <br />더 명확하게 설명하세요.
+              차트를 읽는 방법부터
+              <br />
+              고객에게 설명하는 순서까지.
             </p>
             <a href="#guide">
               시작 가이드 <ArrowUpRight size={14} />
@@ -270,7 +270,7 @@ export default function App() {
             <ArrowUpRight size={13} />
           </a>
           <div className="sidebar-version">
-            VIZ ATLAS <span>v0.2</span>
+            Viz Atlas <span>v0.3</span>
           </div>
         </div>
       </aside>
@@ -286,7 +286,7 @@ export default function App() {
             >
               {sidebarOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
             </button>
-            <span>Workspace</span>
+            <span>워크스페이스</span>
             <span className="breadcrumb-slash">/</span>
             <strong>
               {page === 'lab'
@@ -319,14 +319,10 @@ export default function App() {
                 <div>
                   <div className="eyebrow">
                     <span className="eyebrow-line" />
-                    THE PREDICTION COLLECTION <span className="edition">/ 001</span>
+                    Prediction Lab · 실제값과 예측값
                   </div>
-                  <h1>
-                    Actual vs. Predicted<span className="title-dot">.</span>
-                  </h1>
-                  <p className="intro-copy">
-                    예측은 얼마나 정확할까요? 오차 속 패턴을 직접 탐색해 보세요.
-                  </p>
+                  <h1>예측 결과를 한눈에</h1>
+                  <p className="intro-copy">실제값과 예측값, 숫자 뒤에 숨은 패턴을 살펴보세요.</p>
                 </div>
                 <div className="intro-actions">
                   <button className="button" onClick={copyLink}>
@@ -636,7 +632,7 @@ export default function App() {
                   <>
                     <div className="section-intro">
                       <div>
-                        <span className="eyebrow">BEYOND A SINGLE NUMBER</span>
+                        <span className="eyebrow">예측의 불확실성</span>
                         <h2>예측 범위도 검증이 필요합니다.</h2>
                         <p>
                           240개 별도 보정 표본으로 구간을 계산하고, 360개 평가 표본 중 선택한
@@ -708,7 +704,7 @@ export default function App() {
                   <>
                     <div className="section-intro">
                       <div>
-                        <span className="eyebrow">A MODEL OVER TIME</span>
+                        <span className="eyebrow">시간에 따른 변화</span>
                         <h2>시간이 흐르면, 오차도 달라집니다.</h2>
                         <p>
                           선택한 설비·실제값 구간의 관측을 일별 집계합니다. 표본이 없는 날짜는 선을
@@ -841,7 +837,7 @@ export default function App() {
               <div className="data-note">
                 <span>
                   <i />
-                  REPRODUCIBLE BY DESIGN
+                  언제나 같은 데이터로
                 </span>
                 <p>고정 시드의 합성 데이터 · 가상 모델 A/B · 단위 nm · 잔차 = 실제 − 예측</p>
                 <a href="#guide">
@@ -855,16 +851,12 @@ export default function App() {
                 <div>
                   <div className="eyebrow">
                     <span className="eyebrow-line" />
-                    THE VISUAL TOOLKIT
+                    시각화 라이브러리
                   </div>
-                  <h1>
-                    시각화 라이브러리<span className="title-dot">.</span>
-                  </h1>
-                  <p className="intro-copy">
-                    좋은 질문에, 알맞은 차트. 예제와 해석을 함께 모았습니다.
-                  </p>
+                  <h1>좋은 질문에, 알맞은 차트</h1>
+                  <p className="intro-copy">설명하고 싶은 데이터에 맞는 시각화를 찾아보세요.</p>
                 </div>
-                <span className="collection-badge">01 COLLECTION / 09 PATTERNS</span>
+                <span className="collection-badge">9가지 시각화 기법</span>
               </div>
               <div className="pattern-grid">
                 {[
@@ -962,11 +954,11 @@ export default function App() {
                       <ArrowUpRight size={19} />
                     </div>
                     <MiniPlot kind={p.chart} />
-                    <h2>{p.title}</h2>
-                    <strong>{p.ko}</strong>
+                    <h2>{p.ko}</h2>
+                    <strong>{p.title}</strong>
                     <p>{p.desc}</p>
                     <span className="pattern-cta">
-                      인터랙티브 예제 열기 <ArrowRight size={14} />
+                      직접 살펴보기 <ArrowRight size={14} />
                     </span>
                   </button>
                 ))}
@@ -977,10 +969,10 @@ export default function App() {
           )}
           <footer className="page-footer">
             <span>
-              Viz Atlas<span className="footer-dot">·</span>Make data make sense.
+              Viz Atlas<span className="footer-dot">·</span>데이터가 쉬워지는 순간
             </span>
             <span>
-              BUILT FOR CURIOSITY <ArrowUpRight size={12} />
+              보고, 이해하고, 설명하세요 <ArrowUpRight size={12} />
             </span>
           </footer>
         </main>
@@ -1031,7 +1023,7 @@ function MiniPlot({ kind }: { kind: string }) {
             width="31"
             height="22"
             rx="3"
-            fill={['#dfebe0', '#aac9b6', '#74a98e', '#c2d9c7'][(i * 7) % 4]}
+            fill={['#dceaff', '#b3d3ff', '#80b4ff', '#c8e0ff'][(i * 7) % 4]}
           />
         ))
       ) : kind === 'calibration' ? (
@@ -1091,11 +1083,9 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
         <div>
           <div className="eyebrow">
             <span className="eyebrow-line" />
-            NOTES FROM THE LAB
+            읽는 법 & 노트
           </div>
-          <h1>
-            차트를 읽는 시간<span className="title-dot">.</span>
-          </h1>
+          <h1>숫자 너머의 이야기 읽기</h1>
           <p className="intro-copy">예측을 설명할 때 알아두면 좋은 질문과 원칙들.</p>
         </div>
         <button className="button dark" onClick={onLaunch}>
@@ -1115,7 +1105,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             살펴보고, 실제 업무의 허용 기준으로 판단해 보세요.
           </p>
           <section>
-            <span className="guide-number">01 / START HERE</span>
+            <span className="guide-number">01 · 여기서 시작하세요</span>
             <h2>고객에게 설명하는 순서</h2>
             <ol className="guide-steps">
               <li>
@@ -1144,7 +1134,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             </ol>
           </section>
           <section>
-            <span className="guide-number">02 / READING THE NUMBERS</span>
+            <span className="guide-number">02 · 숫자를 읽는 방법</span>
             <h2>지표가 말해주는 것</h2>
             <dl className="metric-glossary">
               <div>
@@ -1176,7 +1166,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             </dl>
           </section>
           <section>
-            <span className="guide-number">03 / AVOID THE TRAPS</span>
+            <span className="guide-number">03 · 해석할 때 주의할 점</span>
             <h2>해석할 때 놓치기 쉬운 점</h2>
             <ul className="reading-notes">
               <li>
@@ -1205,7 +1195,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             </ul>
           </section>
           <section>
-            <span className="guide-number">04 / REPRODUCIBILITY</span>
+            <span className="guide-number">04 · 데이터와 계산</span>
             <h2>이 예제의 데이터와 계산</h2>
             <p>
               실제 반도체 회사의 데이터를 사용하지 않습니다. 40–100 nm 범위의 가상 박막 두께와 설비
@@ -1229,7 +1219,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             </p>
           </section>
           <section>
-            <span className="guide-number">05 / CONDITIONAL DIAGNOSTICS</span>
+            <span className="guide-number">05 · 조건별 진단</span>
             <h2>평균 뒤에 숨은 차이 읽기</h2>
             <p>
               히트맵은 설비 × 실제값 10 nm 구간별 MAE·평균 잔차·허용 오차 충족률을 표시합니다.
@@ -1252,7 +1242,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
             </p>
           </section>
           <section>
-            <span className="guide-number">06 / FURTHER READING</span>
+            <span className="guide-number">06 · 더 알아보기</span>
             <h2>참고 자료</h2>
             <div className="reference-list">
               <a
@@ -1295,14 +1285,14 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
           </section>
         </article>
         <aside className="guide-aside">
-          <span className="eyebrow">TRY THIS</span>
+          <span className="eyebrow">직접 해보세요</span>
           <h3>5분 데모 코스</h3>
           <p>‘특정 설비의 성능 저하’를 선택하고, EQ-03 → 모델 B → 허용 오차 순서로 바꿔보세요.</p>
           <button className="text-button" onClick={onLaunch}>
             Prediction Lab 열기 <ArrowRight size={15} />
           </button>
           <hr />
-          <span className="eyebrow">OUR CONVENTION</span>
+          <span className="eyebrow">함께 쓰는 규칙</span>
           <code>잔차 = 실제 − 예측</code>
           <p>프로젝트 전체에서 같은 부호 규칙을 사용합니다.</p>
           <div className="guide-visual">

@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test'
 
 test('filters, models, tolerance and sample selection stay in sync', async ({ page }) => {
   await page.goto('./')
-  await expect(page.getByRole('heading', { name: 'Actual vs. Predicted.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '예측 결과를 한눈에' })).toBeVisible()
   await expect(page.locator('.sample-count')).toHaveText('360 observations')
   const before = await page.getByTestId('within-value').textContent()
   await page.getByRole('button', { name: 'EQ-03', exact: true }).click()
@@ -60,7 +60,7 @@ test('mobile layout fits and navigation is operable', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('button', { name: '메뉴 열기' }).click()
   await page.getByRole('link', { name: '시각화 라이브러리' }).click()
-  await expect(page.getByRole('heading', { name: '시각화 라이브러리.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '좋은 질문에, 알맞은 차트' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 

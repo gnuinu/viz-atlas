@@ -20,12 +20,14 @@ export function ChartCard({
   return (
     <section className={`chart-card ${className}`}>
       <header className="chart-heading">
-        <div>
-          <div className="chart-kicker">
+        <div className="chart-title-block">
+          <span className="chart-number" aria-hidden="true">
             {number}
-            <span>{subtitle}</span>
+          </span>
+          <div>
+            <h2>{title}</h2>
+            <p className="chart-kicker">{subtitle}</p>
           </div>
-          <h2>{title}</h2>
         </div>
         {tag && <span className="subtle-tag">{tag}</span>}
       </header>
