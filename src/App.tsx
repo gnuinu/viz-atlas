@@ -12,6 +12,8 @@ import {
   Layers3,
   Link2,
   MoveUpRight,
+  Moon,
+  Sun,
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
@@ -21,6 +23,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import { useTheme } from './useTheme'
 import { ChartCard } from './ChartCard'
 import { CalibrationPanel, ComparisonView } from './AdvancedDiagnostics'
 import { filterObservations } from './diagnostics'
@@ -86,6 +89,7 @@ function Legend({
 }
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme()
   const [settings, setSettings] = useState<Settings>(() => parseSettings(location.search))
   const [page, setPage] = useState<Page>(readPage)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -253,7 +257,7 @@ export default function App() {
             <p>
               차트를 읽는 방법부터
               <br />
-              고객에게 설명하는 순서까지.
+              결과를 전달하는 방법까지.
             </p>
             <a href="#guide">
               시작 가이드 <ArrowUpRight size={14} />
@@ -297,6 +301,25 @@ export default function App() {
             </strong>
           </div>
           <div className="topbar-right">
+            <button
+              className="theme-toggle"
+              type="button"
+              role="switch"
+              aria-label="다크 모드"
+              aria-checked={theme === 'dark'}
+              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? (
+                <Moon size={17} aria-hidden="true" />
+              ) : (
+                <Sun size={17} aria-hidden="true" />
+              )}
+              <span className="theme-label">다크 모드</span>
+              <span className="theme-switch-track" aria-hidden="true">
+                <span />
+              </span>
+            </button>
             <span className="local-indicator">
               <i />
               브라우저에서 실행
@@ -1023,7 +1046,7 @@ function MiniPlot({ kind }: { kind: string }) {
             width="31"
             height="22"
             rx="3"
-            fill={['#dceaff', '#b3d3ff', '#80b4ff', '#c8e0ff'][(i * 7) % 4]}
+            className={`mini-heat mini-heat-${(i * 7) % 4}`}
           />
         ))
       ) : kind === 'calibration' ? (
@@ -1106,7 +1129,7 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
           </p>
           <section>
             <span className="guide-number">01 · 여기서 시작하세요</span>
-            <h2>고객에게 설명하는 순서</h2>
+            <h2>예측 결과를 설명하는 순서</h2>
             <ol className="guide-steps">
               <li>
                 <strong>업무 기준을 정합니다.</strong>

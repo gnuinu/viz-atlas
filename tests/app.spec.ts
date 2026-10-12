@@ -178,3 +178,95 @@ test('sparse time slices preserve actual dates and both series without bridging 
     expect(path.match(/M/g)).toHaveLength(expectedSegments)
   }
 })
+
+test('theme toggle supports keyboard, reloads, and cross-tab sync without changing analysis', async ({
+  page,
+  context,
+}) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('./?machine=EQ-03&band=70-80&view=comparison')
+  const toggle = page.getByRole('switch', { name: '다크 모드' })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  const url = page.url()
+  await toggle.focus()
+  await page.keyboard.press('Space')
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('.control-panel')).toHaveCSS('background-color', 'rgb(25, 31, 40)')
+  await expect(page.locator('.sample-count')).toHaveText('23 observations')
+  await expect(page).toHaveURL(url)
+  await page.reload()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByRole('button', { name: /^EQ-03, 70-80 nm/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  const other = await context.newPage()
+  await other.goto('./')
+  await expect(other.getByRole('switch', { name: '다크 모드' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await other.getByRole('switch', { name: '다크 모드' }).click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await other.close()
+})
+
+test('system appearance is followed until an explicit theme is chosen', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('./')
+  const toggle = page.getByRole('switch', { name: '다크 모드' })
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await toggle.click()
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await page.reload()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#101318')
+  await page.getByRole('link', { name: '읽는 법 & 노트' }).click()
+  await expect(page.getByRole('heading', { name: '예측 결과를 설명하는 순서' })).toBeVisible()
+  await expect(page.locator('body')).not.toContainText('고객')
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.locator('.guide-article')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+})
+
+test('theme can change when browser storage is unavailable, including on mobile', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new Error('Storage blocked')
+    }
+    Storage.prototype.setItem = () => {
+      throw new Error('Storage blocked')
+    }
+  })
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 320, height: 740 })
+  await page.goto('./')
+  const toggle = page.getByRole('switch', { name: '다크 모드' })
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  for (const tab of ['조건별 비교', '불확실성', '시간별 추이', '정확도 진단']) {
+    await page.getByRole('tab', { name: tab }).click()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  expect(errors).toEqual([])
+})
+
+test('stored appearance is applied before the React bundle loads', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.addInitScript(() => localStorage.setItem('viz-atlas-theme', 'dark'))
+  await page.route('**/assets/*.js', (route) => route.abort())
+  await page.goto('./')
+  await expect(page.locator('#root')).toBeEmpty()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(16, 19, 24)')
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#101318')
+})

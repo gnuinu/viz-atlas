@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { scaleLinear } from 'd3-scale'
+import type { CSSProperties } from 'react'
 import { line } from 'd3-shape'
 import { ChartCard } from './ChartCard'
 import { Frame, extent } from './Charts'
@@ -13,7 +13,12 @@ const labels: Record<HeatMetric, string> = {
   bias: '평균 잔차',
   within: '허용 오차 충족률',
 }
-const curveColors = ['var(--chart-a)', 'var(--chart-b)', '#b77916', 'var(--chart-negative)']
+const curveColors = [
+  'var(--chart-a)',
+  'var(--chart-b)',
+  'var(--chart-amber)',
+  'var(--chart-negative)',
+]
 const curveDashes = ['', '7 3', '2 3', '10 3 2 3']
 
 export function ComparisonView({
@@ -42,12 +47,6 @@ export function ComparisonView({
   const allCells = [...cellsA, ...cellsB]
   const maximum =
     heatMetric === 'within' ? 100 : Math.max(1, ...allCells.map((c) => Math.abs(c[heatMetric])))
-  const color =
-    heatMetric === 'bias'
-      ? scaleLinear<string>()
-          .domain([-maximum, 0, maximum])
-          .range(['#86b6fb', '#f3f6fa', '#ffafb7'])
-      : scaleLinear<string>().domain([0, maximum]).range(['#eef5ff', '#91beff'])
   const pairs = useMemo(() => pairModels(a, b), [a, b])
   const summary = improvementSummary(pairs)
   const ranked = [...pairs].sort((x, y) => x.delta - y.delta)
@@ -110,9 +109,19 @@ export function ComparisonView({
                       <button
                         key={cell.band}
                         className={`heat-cell ${active ? 'selected' : ''} ${dim ? 'dimmed' : ''}`}
-                        style={{
-                          backgroundColor: cell.count ? color(cell[heatMetric]) : '#f2f4f6',
-                        }}
+                        style={
+                          {
+                            '--heat-level': `${Math.min(100, (Math.abs(cell[heatMetric]) / maximum) * 100)}%`,
+                            '--heat-start':
+                              heatMetric === 'bias' ? 'var(--heat-neutral)' : 'var(--heat-low)',
+                            '--heat-end':
+                              heatMetric === 'bias'
+                                ? cell.bias < 0
+                                  ? 'var(--heat-over)'
+                                  : 'var(--heat-under)'
+                                : 'var(--heat-high)',
+                          } as CSSProperties
+                        }
                         disabled={!cell.count}
                         aria-pressed={active}
                         aria-label={`${cell.machine}, ${cell.band} nm, ${labels[heatMetric]} ${cell[heatMetric].toFixed(2)}, 표본 ${cell.count}개`}
@@ -144,14 +153,7 @@ export function ComparisonView({
         </div>
         <div className="heatmap-key">
           <span>{heatMetric === 'bias' ? `${(-maximum).toFixed(1)} · 과대예측` : '0'}</span>
-          <i
-            style={{
-              background:
-                heatMetric === 'bias'
-                  ? 'linear-gradient(90deg,#86b6fb,#f3f6fa,#ffafb7)'
-                  : 'linear-gradient(90deg,#eef5ff,#91beff)',
-            }}
-          />
+          <i className={heatMetric === 'bias' ? 'diverging' : undefined} />
           <span>
             {maximum.toFixed(1)}
             {heatMetric === 'bias'
