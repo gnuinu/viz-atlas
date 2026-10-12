@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -22,8 +21,12 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import { ChartCard } from './ChartCard'
+import { CalibrationPanel, ComparisonView } from './AdvancedDiagnostics'
+import { filterObservations } from './diagnostics'
 import { BoxPlot, CoveragePlot, ECDFPlot, IntervalPlot, ScatterPlot, TimePlot } from './Charts'
 import {
+  actualBands,
   createDataset,
   defaults,
   machines,
@@ -33,45 +36,11 @@ import {
   settingsSearch,
   toCSV,
 } from './data'
-import type { Model, Settings, View } from './data'
+import type { ActualBand, Model, Settings, View } from './data'
 
 type Page = 'lab' | 'patterns' | 'guide'
 function readPage(): Page {
   return location.hash === '#patterns' ? 'patterns' : location.hash === '#guide' ? 'guide' : 'lab'
-}
-function ChartCard({
-  number,
-  title,
-  subtitle,
-  tag,
-  className = '',
-  children,
-  footer,
-}: {
-  number: string
-  title: string
-  subtitle: string
-  tag?: string
-  className?: string
-  children: ReactNode
-  footer: ReactNode
-}) {
-  return (
-    <section className={`chart-card ${className}`}>
-      <header className="chart-heading">
-        <div>
-          <div className="chart-kicker">
-            {number}
-            <span>{subtitle}</span>
-          </div>
-          <h2>{title}</h2>
-        </div>
-        {tag && <span className="subtle-tag">{tag}</span>}
-      </header>
-      {children}
-      <div className="chart-footer">{footer}</div>
-    </section>
-  )
 }
 function Legend({
   type = 'scatter',
@@ -124,7 +93,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showSamples, setShowSamples] = useState(false)
   const [toast, setToast] = useState('')
-  const { scenario, model, machine, tolerance, view } = settings
+  const { scenario, model, machine, tolerance, view, band } = settings
   useEffect(() => {
     history.replaceState(
       null,
@@ -174,14 +143,8 @@ export default function App() {
   }, [page])
   const allA = useMemo(() => createDataset(scenario, 'A'), [scenario])
   const allB = useMemo(() => createDataset(scenario, 'B'), [scenario])
-  const dataA = useMemo(
-    () => allA.filter((d) => machine === '전체' || d.machine === machine),
-    [allA, machine],
-  )
-  const dataB = useMemo(
-    () => allB.filter((d) => machine === '전체' || d.machine === machine),
-    [allB, machine],
-  )
+  const dataA = useMemo(() => filterObservations(allA, machine, band), [allA, machine, band])
+  const dataB = useMemo(() => filterObservations(allB, machine, band), [allB, machine, band])
   const allData = model === 'A' ? allA : allB,
     data = model === 'A' ? dataA : dataB
   const m = metrics(data, tolerance),
@@ -264,7 +227,7 @@ export default function App() {
             aria-current={page === 'patterns' ? 'page' : undefined}
           >
             <Layers3 size={18} />
-            시각화 라이브러리<span className="nav-count">06</span>
+            시각화 라이브러리<span className="nav-count">09</span>
           </a>
           <a
             href="#guide"
@@ -307,7 +270,7 @@ export default function App() {
             <ArrowUpRight size={13} />
           </a>
           <div className="sidebar-version">
-            VIZ ATLAS <span>v0.1</span>
+            VIZ ATLAS <span>v0.2</span>
           </div>
         </div>
       </aside>
@@ -463,6 +426,21 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <label className="actual-band-filter">
+                    <span className="field-label">실제값 구간</span>
+                    <select
+                      value={band}
+                      onChange={(e) => update({ band: e.target.value as ActualBand })}
+                      aria-label="실제값 구간"
+                    >
+                      <option value="all">전체 범위</option>
+                      {actualBands.map((value) => (
+                        <option key={value} value={value}>
+                          {value.replace('-', '–')} nm
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <button
                     className="text-button reset"
                     onClick={() => {
@@ -535,6 +513,7 @@ export default function App() {
                   {(
                     [
                       { id: 'diagnostics', label: '정확도 진단' },
+                      { id: 'comparison', label: '조건별 비교' },
                       { id: 'uncertainty', label: '불확실성' },
                       { id: 'time', label: '시간별 추이' },
                     ] as { id: View; label: string }[]
@@ -624,7 +603,7 @@ export default function App() {
                         footer="박스: 25–75% · 가운데 선: 중앙값 · 수염: 1.5 IQR 내 관측값. 설비를 클릭하면 필터가 적용됩니다."
                       >
                         <BoxPlot
-                          data={allData}
+                          data={filterObservations(allData, '전체', band)}
                           machine={machine}
                           onMachine={(value) => update({ machine: value })}
                           tolerance={tolerance}
@@ -642,6 +621,17 @@ export default function App() {
                       </ChartCard>
                     </div>
                   </>
+                ) : view === 'comparison' ? (
+                  <ComparisonView
+                    allA={allA}
+                    allB={allB}
+                    a={dataA}
+                    b={dataB}
+                    settings={settings}
+                    selectedId={selectedId}
+                    onSelect={select}
+                    onUpdate={update}
+                  />
                 ) : view === 'uncertainty' ? (
                   <>
                     <div className="section-intro">
@@ -650,7 +640,7 @@ export default function App() {
                         <h2>예측 범위도 검증이 필요합니다.</h2>
                         <p>
                           240개 별도 보정 표본으로 구간을 계산하고, 360개 평가 표본 중 선택한
-                          설비에서 검증합니다.
+                          설비·실제값 구간에서 검증합니다.
                         </p>
                       </div>
                       <div className="interval-metrics">
@@ -681,8 +671,8 @@ export default function App() {
                         number="05"
                         subtitle="PREDICTION INTERVALS"
                         title="예측 구간과 실제값"
-                        tag="36개 표시"
-                        footer="예측값 순서로 정렬해 고르게 뽑은 36개입니다. 세로선은 예측 구간, 가로 눈금은 예측값, 점은 실제값입니다."
+                        tag={`${Math.min(36, data.length)}개 표시`}
+                        footer="예측값 순서로 정렬해 고르게 뽑은 최대 36개입니다. 세로선은 예측 구간, 가로 눈금은 예측값, 점은 실제값입니다."
                       >
                         <Legend type="interval" />
                         <IntervalPlot data={data} selectedId={selectedId} onSelect={select} />
@@ -712,6 +702,7 @@ export default function App() {
                         </p>
                       </div>
                     </div>
+                    <CalibrationPanel allData={allData} settings={settings} />
                   </>
                 ) : (
                   <>
@@ -720,8 +711,8 @@ export default function App() {
                         <span className="eyebrow">A MODEL OVER TIME</span>
                         <h2>시간이 흐르면, 오차도 달라집니다.</h2>
                         <p>
-                          일별 평균을 비교합니다. 각 날짜는 전체 12개, 설비별 4개 표본으로
-                          집계됩니다.
+                          선택한 설비·실제값 구간의 관측을 일별 집계합니다. 표본이 없는 날짜는 선을
+                          끊어 표시합니다.
                         </p>
                       </div>
                       <span className="subtle-tag">2026년 9월 · 30일</span>
@@ -873,7 +864,7 @@ export default function App() {
                     좋은 질문에, 알맞은 차트. 예제와 해석을 함께 모았습니다.
                   </p>
                 </div>
-                <span className="collection-badge">01 COLLECTION / 06 PATTERNS</span>
+                <span className="collection-badge">01 COLLECTION / 09 PATTERNS</span>
               </div>
               <div className="pattern-grid">
                 {[
@@ -931,6 +922,33 @@ export default function App() {
                     label: '시간 변화',
                     chart: 'time',
                   },
+                  {
+                    title: 'Conditional Error Heatmap',
+                    ko: '어떤 조건에서 오차가 커질까?',
+                    desc: '설비와 실제값 구간별 오차를 탐색하고 필터로 연결합니다.',
+                    type: 'comparison',
+                    no: '07',
+                    label: '조건별 진단',
+                    chart: 'heatmap',
+                  },
+                  {
+                    title: 'Paired Model Improvement',
+                    ko: '새 모델은 어떤 샘플을 개선했을까?',
+                    desc: '동일 표본의 절대오차 차이로 개선과 악화를 함께 봅니다.',
+                    type: 'comparison',
+                    no: '08',
+                    label: '모델 비교',
+                    chart: 'paired',
+                  },
+                  {
+                    title: 'Interval Calibration',
+                    ko: '목표 포함률과 실제 포함률이 맞을까?',
+                    desc: '50–95% 목표별 전체·설비별 포함률과 구간 폭을 확인합니다.',
+                    type: 'uncertainty',
+                    no: '09',
+                    label: '구간 보정',
+                    chart: 'calibration',
+                  },
                 ].map((p) => (
                   <button
                     className="pattern-card"
@@ -983,7 +1001,7 @@ function MiniPlot({ kind }: { kind: string }) {
   return (
     <svg viewBox="0 0 260 110" className="mini-plot" aria-hidden="true">
       <path d="M15 5V95H250" className="mini-axis" />
-      {kind === 'scatter' || kind === 'residual' ? (
+      {kind === 'scatter' || kind === 'residual' || kind === 'paired' ? (
         <>
           {kind === 'scatter' ? (
             <path d="M25 85L240 15" className="mini-ref" />
@@ -1003,6 +1021,24 @@ function MiniPlot({ kind }: { kind: string }) {
               className={i % 7 === 0 ? 'mini-coral' : 'mini-teal'}
             />
           ))}
+        </>
+      ) : kind === 'heatmap' ? (
+        Array.from({ length: 18 }, (_, i) => (
+          <rect
+            key={i}
+            x={25 + (i % 6) * 36}
+            y={12 + Math.floor(i / 6) * 26}
+            width="31"
+            height="22"
+            rx="3"
+            fill={['#dfebe0', '#aac9b6', '#74a98e', '#c2d9c7'][(i * 7) % 4]}
+          />
+        ))
+      ) : kind === 'calibration' ? (
+        <>
+          <path d="M25 90L240 10" className="mini-ref" />
+          <path d="M130 60L173 35 195 27 218 18 229 14" className="mini-line" />
+          <path d="M130 84L173 67 195 54 218 43 229 36" className="mini-line secondary" />
         </>
       ) : kind === 'box' ? (
         [65, 130, 195].map((x, i) => (
@@ -1177,22 +1213,46 @@ function Guide({ onLaunch }: { onLaunch: () => void }) {
               아니라 실패 패턴을 설명하기 위해 생성한 예측값입니다.
             </p>
             <p>
-              별도 시드로 만든 240개 보정 표본의 절대오차를 정렬하고, ceil((n+1) × 0.9)번째 값을
-              예측 구간의 반폭으로 사용합니다. ‘좁은 예측 구간’ 시나리오에서는 모델 A의 반폭을 35%로
-              축소합니다. 모델 B의 점 예측은 A와 같아, 구간 폭만 비교할 수 있습니다.
+              별도 시드로 만든 240개 보정 표본의 절대오차를 정렬하고, ceil((n+1) × 목표 포함률)번째
+              값을 예측 구간의 반폭으로 사용합니다. ‘좁은 예측 구간’ 시나리오에서는 모델 A의 반폭을
+              35%로 축소합니다. 모델 B의 점 예측은 A와 같아, 구간 폭만 비교할 수 있습니다.
             </p>
             <p>
               집단별 분포 차이와 시간 변화에서는 전체 포함률과 집단별 포함률이 달라질 수 있습니다.
               교환가능성 가정이 깨지는 시간 변화 사례에서 90% 보장을 주장하지 않습니다. 보정 구간은
-              전체 설비에서 계산하고, 설비 필터는 평가 대상만 바꿉니다.
+              전체 설비에서 계산하고, 설비·실제값 구간 필터는 평가 대상만 바꿉니다. 보정 곡선은
+              50·70·80·90·95% 목표를 같은 보정 표본으로 계산하며, 필터마다 재보정하지 않습니다.
             </p>
             <p>
-              현재 링크는 시나리오·모델·설비·허용 오차·분석 탭을 저장합니다. CSV는 선택된 데이터
-              전체와 예측 구간을 포함합니다.
+              현재 링크는 시나리오·모델·설비·실제값 구간·히트맵 지표·허용 오차·분석 탭을 저장합니다.
+              CSV는 선택된 데이터 전체와 예측 구간을 포함합니다.
             </p>
           </section>
           <section>
-            <span className="guide-number">05 / FURTHER READING</span>
+            <span className="guide-number">05 / CONDITIONAL DIAGNOSTICS</span>
+            <h2>평균 뒤에 숨은 차이 읽기</h2>
+            <p>
+              히트맵은 설비 × 실제값 10 nm 구간별 MAE·평균 잔차·허용 오차 충족률을 표시합니다.
+              구간은 하한을 포함하고 상한을 제외하며, 마지막 구간은 100 nm를 포함합니다. 색 범위는
+              A/B에 공통으로 고정됩니다. 표본 수가 적은 셀의 수치를 과도하게 해석하지 마세요.
+            </p>
+            <p>
+              실제값을 기준으로 나눈 구간은 관측 이후의 진단 도구입니다. 예측 시점에는 실제값을
+              모르므로 이를 운영 중 모델 선택 규칙에 그대로 사용할 수 없습니다.
+            </p>
+            <p>
+              표본별 개선도는 |오차 A| − |오차 B|입니다. 같은 표본의 ID·실제값·설비·날짜를 확인한 뒤
+              비교하며, 양수는 B의 개선입니다. 평균 개선도는 MAE A − MAE B와 같지만 일부 샘플은
+              악화될 수 있습니다.
+            </p>
+            <p>
+              보정 곡선의 대각선은 목표 포함률과 실제 포함률이 같은 위치입니다. 유한한 평가
+              표본에서는 변동이 생깁니다. 전체 포함률이 목표에 가까워도 모든 설비나 실제값 구간에서
+              같은 포함률을 보장하지 않습니다. 포함률뿐 아니라 구간 폭도 함께 보세요.
+            </p>
+          </section>
+          <section>
+            <span className="guide-number">06 / FURTHER READING</span>
             <h2>참고 자료</h2>
             <div className="reference-list">
               <a

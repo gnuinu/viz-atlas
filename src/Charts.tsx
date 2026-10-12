@@ -16,7 +16,8 @@ type Plot = {
   bottom: number
   width: number
 }
-function extent(values: number[], pad = 0.08): [number, number] {
+export function extent(values: number[], pad = 0.08): [number, number] {
+  if (!values.length) return [0, 1]
   const lo = Math.min(...values),
     hi = Math.max(...values),
     span = hi - lo || 1
@@ -32,7 +33,7 @@ function useWidth() {
   }, [])
   return { ref, width }
 }
-function Frame({
+export function Frame({
   xDomain,
   yDomain,
   xLabel,
@@ -403,17 +404,18 @@ export function IntervalPlot({
   onSelect: (id: string) => void
 }) {
   const sorted = [...data].sort((a, b) => a.predicted - b.predicted)
+  const count = Math.min(36, sorted.length)
   const shown = Array.from(
-    { length: 36 },
-    (_, i) => sorted[Math.round((i * (sorted.length - 1)) / 35)],
+    { length: count },
+    (_, i) => sorted[Math.round((i * (sorted.length - 1)) / Math.max(1, count - 1))],
   )
   return (
     <Frame
-      xDomain={[0, 37]}
+      xDomain={[0, count + 1]}
       yDomain={extent(shown.flatMap((d) => [d.actual, d.lower, d.upper]))}
       xLabel="표시 순서 · 예측값 기준 정렬"
       yLabel="박막 두께 (nm)"
-      title="예측값 순서로 정렬한 36개 샘플의 예측 구간과 실제값. 전체 표본으로 포함률을 계산합니다."
+      title={`예측값 순서로 정렬한 ${count}개 샘플의 예측 구간과 실제값. 전체 표본으로 포함률을 계산합니다.`}
     >
       {(p) =>
         shown.map((d, i) => {
@@ -513,7 +515,7 @@ export function TimePlot({
   error?: boolean
   drift?: boolean
 }) {
-  const dates = [...new Set(data.map((d) => d.date))]
+  const dates = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`)
   const daily = dates.map((date, i) => {
     const subset = data.filter((d) => d.date === date),
       m = metrics(subset, 5)
@@ -528,7 +530,10 @@ export function TimePlot({
   return (
     <Frame
       xDomain={[0.5, 30.5]}
-      yDomain={extent([...daily.flatMap((d) => keys.map((k) => d[k])), ...(error ? [0] : [])])}
+      yDomain={extent([
+        ...daily.filter((d) => d.count > 0).flatMap((d) => keys.map((k) => d[k])),
+        ...(error ? [0] : []),
+      ])}
       xLabel="2026년 9월 · 일별 집계"
       yLabel={error ? '일별 오차 (nm)' : '일평균 박막 두께 (nm)'}
       title={
@@ -561,19 +566,32 @@ export function TimePlot({
               key={key}
               d={
                 line<(typeof daily)[number]>()
+                  .defined((d) => d.count > 0)
                   .x((d) => p.x(d.day))
                   .y((d) => p.y(d[key]))(daily) ?? ''
               }
               className={`time-line series-${i}`}
             />
           ))}
-          {daily.map((d) => (
-            <circle key={d.day} cx={p.x(d.day)} cy={p.y(d[keys[0]])} r="3" className="time-dot">
-              <title>
-                {d.day}일 · {keys[0]}: {d[keys[0]].toFixed(2)} nm
-              </title>
-            </circle>
-          ))}
+          {keys.flatMap((key, series) =>
+            daily
+              .filter((d) => d.count > 0)
+              .map((d) => (
+                <circle
+                  key={`${key}-${d.day}`}
+                  cx={p.x(d.day)}
+                  cy={p.y(d[key])}
+                  r="3"
+                  className={`time-dot series-${series}`}
+                  data-day={d.day}
+                  data-series={key}
+                >
+                  <title>
+                    {d.day}일 · n={d.count} · {key}: {d[key].toFixed(2)} nm
+                  </title>
+                </circle>
+              )),
+          )}
         </>
       )}
     </Frame>

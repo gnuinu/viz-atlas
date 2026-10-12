@@ -1,7 +1,10 @@
 export type Scenario = 'balanced' | 'bias' | 'hetero' | 'equipment' | 'drift' | 'overconfident'
 export type Model = 'A' | 'B'
 export type Machine = '전체' | 'EQ-01' | 'EQ-02' | 'EQ-03'
-export type View = 'diagnostics' | 'uncertainty' | 'time'
+export type View = 'diagnostics' | 'comparison' | 'uncertainty' | 'time'
+export const actualBands = ['40-50', '50-60', '60-70', '70-80', '80-90', '90-100'] as const
+export type ActualBand = 'all' | (typeof actualBands)[number]
+export type HeatMetric = 'mae' | 'bias' | 'within'
 export type Observation = {
   id: string
   index: number
@@ -131,10 +134,17 @@ export function conformalQuantile(errors: number[], coverage = 0.9) {
   const rank = Math.ceil((sorted.length + 1) * coverage)
   return rank > sorted.length ? Infinity : sorted[rank - 1]
 }
-export function createDataset(scenario: Scenario, model: Model): Observation[] {
+export function intervalRadius(scenario: Scenario, model: Model, coverage = 0.9) {
   const calibration = generateRaw(scenario, model, 240, 84291, true)
-  let radius = conformalQuantile(calibration.map((d) => d.absoluteError))
+  let radius = conformalQuantile(
+    calibration.map((d) => d.absoluteError),
+    coverage,
+  )
   if (scenario === 'overconfident' && model === 'A') radius *= 0.35
+  return radius
+}
+export function createDataset(scenario: Scenario, model: Model): Observation[] {
+  const radius = intervalRadius(scenario, model)
   return generateRaw(scenario, model, 360, 17523, false).map((d) => ({
     ...d,
     lower: d.predicted - radius,
@@ -175,6 +185,8 @@ export type Settings = {
   machine: Machine
   tolerance: number
   view: View
+  band: ActualBand
+  heatMetric: HeatMetric
 }
 export const defaults: Settings = {
   scenario: 'equipment',
@@ -182,6 +194,8 @@ export const defaults: Settings = {
   machine: '전체',
   tolerance: 5,
   view: 'diagnostics',
+  band: 'all',
+  heatMetric: 'mae',
 }
 export function parseSettings(search: string): Settings {
   const p = new URLSearchParams(search)
@@ -197,9 +211,15 @@ export function parseSettings(search: string): Settings {
     tolerance: Number.isFinite(tolerance)
       ? Math.min(12, Math.max(1, Math.round(tolerance * 2) / 2))
       : defaults.tolerance,
-    view: ['diagnostics', 'uncertainty', 'time'].includes(view ?? '')
+    view: ['diagnostics', 'comparison', 'uncertainty', 'time'].includes(view ?? '')
       ? (view as View)
       : defaults.view,
+    band: actualBands.includes(p.get('band') as (typeof actualBands)[number])
+      ? (p.get('band') as ActualBand)
+      : 'all',
+    heatMetric: ['mae', 'bias', 'within'].includes(p.get('heatMetric') ?? '')
+      ? (p.get('heatMetric') as HeatMetric)
+      : 'mae',
   }
 }
 export function settingsSearch(settings: Settings) {
@@ -207,7 +227,7 @@ export function settingsSearch(settings: Settings) {
 }
 export function toCSV(data: Observation[], settings: Settings) {
   const header =
-    'sample_id,date,machine,actual_nm,predicted_nm,residual_nm,absolute_error_nm,lower_90_nm,upper_90_nm,within_tolerance,tolerance_nm,scenario,model'
+    'sample_id,date,machine,actual_nm,predicted_nm,residual_nm,absolute_error_nm,lower_90_nm,upper_90_nm,within_tolerance,tolerance_nm,scenario,model,actual_band'
   return (
     '\uFEFF' +
     [
@@ -227,6 +247,7 @@ export function toCSV(data: Observation[], settings: Settings) {
           settings.tolerance,
           settings.scenario,
           settings.model,
+          settings.band,
         ].join(','),
       ),
     ].join('\r\n')
