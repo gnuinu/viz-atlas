@@ -30,6 +30,17 @@
             : matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
               : 'light'
+        let savedLanguage
+        try {
+          savedLanguage = localStorage.getItem('viz-atlas-language')
+        } catch {}
+        const queryLanguage = new URLSearchParams(location.search).get('lang')
+        document.documentElement.lang =
+          queryLanguage === 'en' || queryLanguage === 'ko'
+            ? queryLanguage
+            : savedLanguage === 'en'
+              ? 'en'
+              : 'ko'
         document.documentElement.dataset.theme = theme
         document.querySelector('meta[name="theme-color"]').content =
           theme === 'dark' ? '#101318' : '#f2f4f6'

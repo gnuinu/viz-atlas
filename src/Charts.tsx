@@ -1,3 +1,4 @@
+import { useTranslation } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { scaleLinear } from 'd3-scale'
@@ -120,6 +121,8 @@ export function ScatterPlot({
   onSelect: (id: string) => void
   residual?: boolean
 }) {
+  const { t } = useTranslation()
+
   const [hover, setHover] = useState<Observation | null>(null)
   const shown = hover && data.find((d) => d.id === hover.id)
   const domain = extent(data.flatMap((d) => [d.actual, d.predicted]))
@@ -131,13 +134,13 @@ export function ScatterPlot({
       <Frame
         xDomain={residual ? extent(data.map((d) => d.predicted)) : domain}
         yDomain={yDomain}
-        xLabel={residual ? '예측값 (nm)' : '실제값 (nm)'}
-        yLabel={residual ? '잔차 · 실제 − 예측 (nm)' : '예측값 (nm)'}
+        xLabel={residual ? t('예측값 (nm)') : t('실제값 (nm)')}
+        yLabel={residual ? t('잔차 · 실제 − 예측 (nm)') : t('예측값 (nm)')}
         square={!residual}
         title={
           residual
-            ? '예측값에 따른 잔차. 잔차는 실제값에서 예측값을 뺀 값입니다.'
-            : '실제값과 예측값 비교. 대각선에 가까울수록 오차가 작습니다.'
+            ? t('예측값에 따른 잔차. 잔차는 실제값에서 예측값을 뺀 값입니다.')
+            : t('실제값과 예측값 비교. 대각선에 가까울수록 오차가 작습니다.')
         }
       >
         {(p) => {
@@ -206,9 +209,12 @@ export function ScatterPlot({
             {shown.id} · {shown.machine}
           </strong>
           <span>
-            실제 {shown.actual.toFixed(2)} / 예측 {shown.predicted.toFixed(2)} nm
+            {' '}
+            {t('실제')} {shown.actual.toFixed(2)} {t('/ 예측')} {shown.predicted.toFixed(2)} nm
           </span>
-          <span>잔차 {shown.residual.toFixed(2)} nm</span>
+          <span>
+            {t('잔차')} {shown.residual.toFixed(2)} nm
+          </span>
         </div>
       )}
     </div>
@@ -226,14 +232,16 @@ export function BoxPlot({
   onMachine: (m: Machine) => void
   tolerance: number
 }) {
+  const { t } = useTranslation()
+
   const domain = extent([...data.map((d) => d.residual), -tolerance, tolerance])
   return (
     <Frame
       xDomain={[0.5, 3.5]}
       yDomain={domain}
-      xLabel="설비 · 전체 데이터에서 비교"
-      yLabel="잔차 (nm)"
-      title="설비별 잔차 박스 플롯. 박스는 사분위 범위, 가운데 선은 중앙값입니다."
+      xLabel={t('설비 · 전체 데이터에서 비교')}
+      yLabel={t('잔차 (nm)')}
+      title={t('설비별 잔차 박스 플롯. 박스는 사분위 범위, 가운데 선은 중앙값입니다.')}
       xTicks={[1, 2, 3]}
       xFormat={(n) => machines[n]}
     >
@@ -321,15 +329,19 @@ export function ECDFPlot({
   tolerance: number
   model: Model
 }) {
+  const { t } = useTranslation()
+
   const max =
     Math.max(tolerance, ...a.map((d) => d.absoluteError), ...b.map((d) => d.absoluteError)) * 1.07
   return (
     <Frame
       xDomain={[0, max]}
       yDomain={[0, 104]}
-      xLabel="절대오차 허용 범위 (nm)"
-      yLabel="누적 비율 (%)"
-      title="모델 A와 B의 절대오차 누적분포. 같은 허용 범위에서 높은 선이 더 많은 예측을 포함합니다."
+      xLabel={t('절대오차 허용 범위 (nm)')}
+      yLabel={t('누적 비율 (%)')}
+      title={t(
+        '모델 A와 B의 절대오차 누적분포. 같은 허용 범위에서 높은 선이 더 많은 예측을 포함합니다.',
+      )}
     >
       {(p) => (
         <>
@@ -403,6 +415,8 @@ export function IntervalPlot({
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
+  const { t } = useTranslation()
+
   const sorted = [...data].sort((a, b) => a.predicted - b.predicted)
   const count = Math.min(36, sorted.length)
   const shown = Array.from(
@@ -413,9 +427,12 @@ export function IntervalPlot({
     <Frame
       xDomain={[0, count + 1]}
       yDomain={extent(shown.flatMap((d) => [d.actual, d.lower, d.upper]))}
-      xLabel="표시 순서 · 예측값 기준 정렬"
-      yLabel="박막 두께 (nm)"
-      title={`예측값 순서로 정렬한 ${count}개 샘플의 예측 구간과 실제값. 전체 표본으로 포함률을 계산합니다.`}
+      xLabel={t('표시 순서 · 예측값 기준 정렬')}
+      yLabel={t('박막 두께 (nm)')}
+      title={t(
+        '예측값 순서로 정렬한 {0}개 샘플의 예측 구간과 실제값. 전체 표본으로 포함률을 계산합니다.',
+        count,
+      )}
     >
       {(p) =>
         shown.map((d, i) => {
@@ -447,8 +464,9 @@ export function IntervalPlot({
                 className="clickable"
               >
                 <title>
-                  {d.id}: 실제 {d.actual.toFixed(2)}, 구간 {d.lower.toFixed(2)}–{d.upper.toFixed(2)}{' '}
-                  nm
+                  {d.id}
+                  {t(': 실제')} {d.actual.toFixed(2)}
+                  {t(', 구간')} {d.lower.toFixed(2)}–{d.upper.toFixed(2)} nm
                 </title>
               </rect>
             </g>
@@ -459,13 +477,15 @@ export function IntervalPlot({
   )
 }
 export function CoveragePlot({ data }: { data: Observation[] }) {
+  const { t } = useTranslation()
+
   return (
     <Frame
       xDomain={[0.5, 3.5]}
       yDomain={[0, 105]}
-      xLabel="설비"
-      yLabel="실제 포함률 (%)"
-      title="설비별 예측 구간의 실제 포함률과 90% 목표선"
+      xLabel={t('설비')}
+      yLabel={t('실제 포함률 (%)')}
+      title={t('설비별 예측 구간의 실제 포함률과 90% 목표선')}
       xTicks={[1, 2, 3]}
       xFormat={(n) => machines[n]}
     >
@@ -473,7 +493,8 @@ export function CoveragePlot({ data }: { data: Observation[] }) {
         <>
           <line x1={p.left} x2={p.right} y1={p.y(90)} y2={p.y(90)} className="reference-line" />
           <text x={p.right - 4} y={p.y(90) - 8} className="reference-label" textAnchor="end">
-            목표 90%
+            {' '}
+            {t('목표 90%')}{' '}
           </text>
           {machines.slice(1).map((m, i) => {
             const subset = data.filter((d) => d.machine === m),
@@ -515,6 +536,8 @@ export function TimePlot({
   error?: boolean
   drift?: boolean
 }) {
+  const { t } = useTranslation()
+
   const dates = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`)
   const daily = dates.map((date, i) => {
     const subset = data.filter((d) => d.date === date),
@@ -534,13 +557,15 @@ export function TimePlot({
         ...daily.filter((d) => d.count > 0).flatMap((d) => keys.map((k) => d[k])),
         ...(error ? [0] : []),
       ])}
-      xLabel="2026년 9월 · 일별 집계"
-      yLabel={error ? '일별 오차 (nm)' : '일평균 박막 두께 (nm)'}
+      xLabel={t('2026년 9월 · 일별 집계')}
+      yLabel={error ? t('일별 오차 (nm)') : t('일평균 박막 두께 (nm)')}
       title={
-        error ? '시간에 따른 일별 평균 절대오차와 평균 잔차' : '시간에 따른 일평균 실제값과 예측값'
+        error
+          ? t('시간에 따른 일별 평균 절대오차와 평균 잔차')
+          : t('시간에 따른 일평균 실제값과 예측값')
       }
       xTicks={[1, 7, 14, 21, 30]}
-      xFormat={(n) => `${n}일`}
+      xFormat={(n) => t('{0}일', n)}
     >
       {(p) => (
         <>
@@ -554,7 +579,8 @@ export function TimePlot({
                 className="drift-band"
               />
               <text x={p.x(16) + 6} y={p.top + 14} className="reference-label">
-                변화 시작
+                {' '}
+                {t('변화 시작')}{' '}
               </text>
             </>
           )}
@@ -587,7 +613,9 @@ export function TimePlot({
                   data-series={key}
                 >
                   <title>
-                    {d.day}일 · n={d.count} · {key}: {d[key].toFixed(2)} nm
+                    {d.day}
+                    {t('일 · n=')}
+                    {d.count} · {key}: {d[key].toFixed(2)} nm
                   </title>
                 </circle>
               )),

@@ -17,9 +17,16 @@ try {
   const page = await context.newPage()
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
-  const capture = async (name, query = '', { dark = false, selector, fullPage = false } = {}) => {
+  const capture = async (
+    name,
+    query = '',
+    { dark = false, selector, fullPage = false, language = 'ko' } = {},
+  ) => {
     await page.emulateMedia({ colorScheme: dark ? 'dark' : 'light' })
-    await page.goto(new URL(query, baseUrl).href)
+    const url = new URL(query, baseUrl)
+    url.searchParams.set('lang', language)
+    await page.goto(url.href)
+    await expect(page.locator('html')).toHaveAttribute('lang', language)
     await expect(page.locator('html')).toHaveAttribute('data-theme', dark ? 'dark' : 'light')
     await expect(page.locator('main h1')).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
@@ -43,8 +50,10 @@ try {
   })
   await capture('visualization-library', '#patterns', { fullPage: true })
   await capture('dark-mode', '?scenario=equipment&view=diagnostics', { dark: true })
+  await capture('prediction-lab-en', '?scenario=equipment&view=diagnostics', { language: 'en' })
   await page.setViewportSize({ width: 390, height: 1800 })
   await capture('mobile', '?scenario=equipment&view=diagnostics')
+  await capture('mobile-en', '?scenario=equipment&view=diagnostics', { language: 'en' })
   if (errors.length) throw new Error(errors.join('\n'))
 } finally {
   await browser.close()

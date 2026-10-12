@@ -262,11 +262,103 @@ test('theme can change when browser storage is unavailable, including on mobile'
 
 test('stored appearance is applied before the React bundle loads', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' })
-  await page.addInitScript(() => localStorage.setItem('viz-atlas-theme', 'dark'))
+  await page.addInitScript(() => {
+    localStorage.setItem('viz-atlas-theme', 'dark')
+    localStorage.setItem('viz-atlas-language', 'en')
+  })
   await page.route('**/assets/*.js', (route) => route.abort())
   await page.goto('./')
   await expect(page.locator('#root')).toBeEmpty()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(16, 19, 24)')
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#101318')
+})
+
+test('language switching preserves analysis, selection, theme and CSV data', async ({ page }) => {
+  await page.goto('./?machine=EQ-03&band=70-80&view=comparison')
+  await page.getByRole('switch', { name: '다크 모드' }).click()
+  await page.locator('.paired-table .sample-button').first().click()
+  const selected = await page
+    .locator('.paired-table .sample-button[aria-pressed="true"]')
+    .innerText()
+  const metric = (await page.getByTestId('within-value').textContent())!
+  const csv = async (buttonName: string) => {
+    const pending = page.waitForEvent('download')
+    await page.getByRole('button', { name: buttonName }).click()
+    const stream = await (await pending).createReadStream()
+    let result = ''
+    for await (const chunk of stream!) result += chunk.toString()
+    return result
+  }
+  const koreanCSV = await csv('CSV 내보내기')
+  await page.getByRole('combobox', { name: '표시 언어' }).selectOption('en')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.getByRole('heading', { name: 'Predictions at a glance' })).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.getByTestId('within-value')).toHaveText(metric)
+  await expect(page.locator('.sample-count')).toHaveText('23 observations')
+  await expect(page.locator('.pair-point.selected')).toHaveCount(1)
+  await expect(page.locator('.pair-point.selected title')).toContainText(selected)
+  await expect(page).toHaveURL(/lang=en/)
+  expect(await csv('Export CSV')).toBe(koreanCSV)
+  await page.reload()
+  await expect(page.getByRole('combobox', { name: 'Display language' })).toHaveValue('en')
+  await page.goto('./')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await page.goto('./?lang=ko')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ko')
+})
+
+test('English covers every view, accessible chart labels and 320px layout', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.setViewportSize({ width: 320, height: 740 })
+  await page.goto('./?lang=en&scenario=overconfident')
+  for (const tab of ['Accuracy', 'Conditions', 'Uncertainty', 'Time trends']) {
+    await page.getByRole('tab', { name: tab, exact: true }).click()
+    await expect(page.locator('main')).not.toContainText(/[가-힣]/)
+    const labels = await page
+      .locator('main [aria-label], main svg title')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('aria-label') ?? node.textContent).join(' '),
+      )
+    expect(labels).not.toMatch(/[가-힣]/)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+  for (const link of ['Visualization library', 'Reading guide & notes']) {
+    await page.getByRole('button', { name: 'Open menu' }).click()
+    await page.getByRole('link', { name: new RegExp(link) }).click()
+    await expect(page.locator('main')).not.toContainText(/[가-힣]/)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+  await expect(page).toHaveURL(/lang=en/)
+  await page.getByRole('combobox', { name: 'Display language' }).selectOption('ko')
+  await expect(page.getByRole('heading', { name: '숫자 너머의 이야기 읽기' })).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+test('language works with blocked storage and synchronizes across tabs', async ({
+  page,
+  context,
+}) => {
+  await page.goto('./')
+  const other = await context.newPage()
+  await other.goto('./')
+  await page.getByRole('combobox', { name: '표시 언어' }).selectOption('en')
+  await expect(other.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(other).toHaveURL(/lang=en/)
+  await other.close()
+  await page.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new Error('Storage blocked')
+    }
+    Storage.prototype.setItem = () => {
+      throw new Error('Storage blocked')
+    }
+  })
+  await page.goto('./?lang=en')
+  await expect(page.getByRole('heading', { name: 'Predictions at a glance' })).toBeVisible()
+  await page.getByRole('combobox', { name: 'Display language' }).selectOption('ko')
+  await expect(page.getByRole('heading', { name: '예측 결과를 한눈에' })).toBeVisible()
 })
