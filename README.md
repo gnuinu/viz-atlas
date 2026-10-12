@@ -1,0 +1,85 @@
+# Viz Atlas
+
+고객에게 설명하고, 직접 실험하고, 다시 참고할 수 있는 React 데이터 시각화 예제 모음입니다.
+
+**[데모 열기 →](https://gnuinu.github.io/viz-atlas/)**
+
+첫 컬렉션 **Prediction Lab**에서는 가상의 반도체 박막 두께 예측을 통해 실제값과 예측값의 관계를 탐색합니다. 모든 데이터와 모델 예측은 교육용 합성 데이터입니다.
+
+## 포함된 기능
+
+- 6개 시나리오: 균형, 일정한 과대예측, 이분산, 특정 설비 오류, 시간 변화, 과신
+- 모델 A/B 비교, 설비 필터, 허용 오차 슬라이더
+- Parity Plot, 잔차 플롯, 그룹별 박스 플롯, 절대오차 ECDF
+- 예측 구간, 설비별 실제 포함률, 일별 예측·오차 추이
+- 연결된 샘플 선택, 키보드로 조작하는 샘플 목록
+- 설정을 보존하는 공유 URL, 필터된 데이터 CSV 내보내기
+- 시각화 라이브러리, 한국어 해석 가이드 및 참고 자료
+- 모바일 화면, 인쇄 스타일, 동작 감소 설정 지원
+
+## 로컬 실행
+
+Node.js 24 LTS 권장 (최소 22.12).
+
+```bash
+nvm use
+npm ci
+npm run dev
+```
+
+개발 주소: http://127.0.0.1:5173/viz-atlas/
+
+```bash
+npm run check       # 통계·데이터 테스트와 TypeScript/프로덕션 빌드
+npx playwright install chromium
+npm run test:e2e    # 실제 브라우저 상호작용과 모바일 검증
+npm run preview    # 프로덕션 빌드 미리보기
+```
+
+Chrome이 설치된 로컬 환경에서는 `PW_CHROME=1 npm run test:e2e`로 설치된 Chrome을 사용할 수 있습니다.
+
+## 기술 구성
+
+React 19 · TypeScript · Vite 8 · D3 scales/shapes · Lucide · Vitest · Playwright.
+
+백엔드 없이 브라우저에서 데이터를 생성하고 평가합니다. 웹 폰트는 Google Fonts에서 불러오며 실패하면 시스템 폰트를 사용합니다. CSV 업로드나 외부 데이터 저장 기능은 없습니다.
+
+```text
+src/
+  App.tsx          # 앱, 탐색 설정, 라이브러리와 가이드
+  Charts.tsx       # 반응형 SVG 차트와 연결된 선택
+  data.ts          # 합성 데이터, 통계, 예측 구간, URL/CSV
+  data.test.ts     # 통계·시나리오 검증
+  styles.css       # 반응형 스타일
+tests/app.spec.ts  # 브라우저 동작 테스트
+```
+
+## 데이터와 해석
+
+- 평가: 설비 3대 × 120개 = 360개 표본. 2026년 9월 30일, 일별 12개.
+- 단위: nm. 잔차는 **실제 − 예측**으로 통일합니다.
+- 같은 샘플의 실제값과 잡음 시드를 유지해 시나리오/모델을 비교합니다.
+- 240개 독립 보정 표본으로 split-conformal 방식의 대칭 90% 예측 구간을 계산합니다. 보정은 모든 설비를 사용하며 필터는 평가 대상만 바꿉니다.
+- 과신 시나리오는 모델 A의 구간 반폭을 35%로 축소합니다. 모델 B와 점 예측은 동일합니다.
+- 시간 변화 시나리오는 보정 이후 평가 후반에 편향을 넣습니다. 이때 교환가능성 가정이 깨질 수 있어 90% 포함을 보장하지 않습니다.
+- 박스 수염은 Q1/Q3에서 1.5 IQR 이내 실제 관측값까지이며, 모든 점을 함께 표시합니다.
+- 예측 구간 차트에는 예측값으로 정렬한 평가 샘플에서 고르게 뽑은 36개만 표시하지만 지표는 필터된 전체 표본으로 계산합니다.
+
+실제 학습 모델, 진짜 제조 데이터, 미래 시계열 예측의 rolling-origin 검증은 포함하지 않습니다. 시나리오 B의 ‘개선’ 표시는 시뮬레이션 설계이며 실증 성능 주장이 아닙니다.
+
+## GitHub Pages
+
+Vite의 `base`는 `/viz-atlas/`입니다. 해시 탐색과 쿼리 설정을 사용하므로 공유 링크를 새로고침해도 Pages에서 작동합니다.
+
+`.github/workflows/deploy.yml`은 `main` push 시 테스트 → 빌드 → 브라우저 테스트 → Pages 배포를 실행합니다. Pull request에서는 검증만 수행합니다. 저장소 **Settings → Pages → Source: GitHub Actions** 설정이 필요합니다.
+
+## 참고 자료
+
+- [scikit-learn: PredictionErrorDisplay](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.PredictionErrorDisplay.html)
+- [Evidently: Regression evaluation](https://docs.evidentlyai.com/metrics/preset_regression)
+- [MAPIE: Conformal prediction](https://mapie.readthedocs.io/en/stable/)
+- [Forecasting: Principles and Practice](https://otexts.com/fpp3/toolbox.html)
+
+## 다음 확장
+
+CSV 입력과 스키마 검증, 실제 공개 데이터의 모델 학습 예제, 예측 거리별 시계열 평가, 이미지/SVG 내보내기 등을 독립 컬렉션으로 확장할 수 있습니다.
